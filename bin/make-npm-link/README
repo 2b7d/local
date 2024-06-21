@@ -1,0 +1,4 @@
+Make NPM Link
+
+Makes symbolic links to globally installed npm packages and copies them to my
+bin directory.
