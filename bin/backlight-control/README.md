@@ -1,1 +1,3 @@
-# Backlight Control
+Backlight Control
+
+controls brightness level of display
