@@ -56,11 +56,11 @@ static int show_notification(int value)
 
 static void print_usage(FILE *stream)
 {
-    fprintf(stream, "Usage: backlight-control [COMMAND]\n"
+    fprintf(stream, "Usage: backlight-control <COMMAND>\n"
                     "Changes brightness of a screen\n"
                     "\n"
                     "COMMAND:\n"
-                    "   set [VALUE] sets new brightness value\n"
+                    "   set <VALUE> sets new brightness value\n"
                     "   inc         increases brightness\n"
                     "   dec         decreases brightness\n"
                     "   show        shows brightness level\n"

@@ -3,7 +3,7 @@
 set -xe
 
 files=main.c
-outname=main
+outname=backlight-control
 
 flags="-g -Werror=declaration-after-statement -Wall -Wextra -pedantic -std=c99"
 incl=
