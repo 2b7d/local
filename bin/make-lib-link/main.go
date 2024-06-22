@@ -34,13 +34,12 @@ func main() {
 	errs := []error{}
 	success := []string{}
 
-	for _, arg := range args {
-		parts := strings.Split(arg, "/")
-
+	for _, filePath := range args {
+		parts := strings.Split(filePath, "/")
 		index, found := findLocalLib(parts)
 
-		if !found && path.IsAbs(arg) {
-			errs = append(errs, fmt.Errorf("%s is not .local/lib path", arg))
+		if !found && path.IsAbs(filePath) {
+			errs = append(errs, fmt.Errorf("%s is not .local/lib path", filePath))
 			continue
 		}
 
@@ -48,36 +47,40 @@ func main() {
 			parts = parts[index+1:]
 		}
 
-		execpath := path.Join(parts...)
-		target := path.Join(home, ".local", "lib", execpath)
+		relFilePath := path.Join(parts...)
+		absFilePath := path.Join(home, ".local/lib", relFilePath)
 
-		info, err := os.Stat(target)
+		info, err := os.Stat(absFilePath)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				errs = append(errs, fmt.Errorf("%s does not exist in .local/lib", arg))
+				errs = append(errs, fmt.Errorf("%s does not exist in .local/lib", filePath))
 				continue
 			}
 			log.Fatal(err)
 		}
 
 		if info.IsDir() {
-			errs = append(errs, fmt.Errorf("%s is directory", arg))
+			errs = append(errs, fmt.Errorf("%s is directory", filePath))
 			continue
 		}
 
 		if info.Mode()&0111 == 0 {
-			errs = append(errs, fmt.Errorf("%s is not executable", arg))
+			errs = append(errs, fmt.Errorf("%s is not executable", filePath))
 			continue
 		}
 
-		newname := path.Join(home, ".local/bin", path.Base(execpath))
-		oldname := path.Join("../lib/", execpath)
+		linkName := path.Join(home, ".local/bin", path.Base(relFilePath))
+		target := path.Join("../lib", relFilePath)
 
-		if err := os.Symlink(oldname, newname); err != nil {
+		if err := os.Symlink(target, linkName); err != nil {
+			if errors.Is(err, fs.ErrExist) {
+				errs = append(errs, fmt.Errorf("%s already exist in .local/bin", filePath))
+				continue
+			}
 			log.Fatal(err)
 		}
 
-		success = append(success, arg)
+		success = append(success, filePath)
 	}
 
 	if len(success) > 0 {
