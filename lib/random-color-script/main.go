@@ -8,27 +8,29 @@ import (
 	"syscall"
 )
 
+const scriptsDirName = "color-scripts"
+
 func main() {
 	home := os.Getenv("HOME")
 	if home == "" {
-		log.Fatal("$HOME environment variable is not set")
+		log.Fatal("$HOME is not set")
 	}
 
-	dirpath := path.Join(home, ".local/share/color-scripts")
-
+	dirpath := path.Join(home, ".local", "share", scriptsDirName)
 	dirents, err := os.ReadDir(dirpath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if len(dirents) == 0 {
-		log.Fatal("color-scripts directory is empty")
+		log.Fatalf("%s directory is empty", scriptsDirName)
 	}
 
 	script := dirents[rand.IntN(len(dirents))]
 	execpath := path.Join(dirpath, script.Name())
 
-	if err := syscall.Exec(execpath, os.Args, os.Environ()); err != nil {
+	args := []string{execpath}
+	if err := syscall.Exec(args[0], args, os.Environ()); err != nil {
 		log.Fatal(err)
 	}
 }
