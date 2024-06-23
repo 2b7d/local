@@ -41,7 +41,7 @@ static int show_notification(int value)
     }
 
     if (pid == 0) {
-        char *argv[] = {"/bin/dunstify", "Brightness", display_buf, "-r", "2",
+        char *argv[] = {"/bin/dunstify", "Brightness", display_buf, "-r", "1",
                         "-t", "500", NULL};
 
         get_brightness_level(value);
