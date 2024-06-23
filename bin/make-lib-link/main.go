@@ -12,18 +12,7 @@ import (
 
 func main() {
 	if len(os.Args) == 1 {
-		fmt.Fprintln(os.Stderr, "not enough arguments\n")
-		help(os.Stderr)
-		os.Exit(1)
-	}
-
-	args := os.Args[1:]
-
-	for _, arg := range args {
-		if arg == "--help" {
-			help(os.Stdout)
-			os.Exit(0)
-		}
+		log.Fatal("not enough arguments")
 	}
 
 	home := os.Getenv("HOME")
@@ -33,6 +22,7 @@ func main() {
 
 	errs := []error{}
 	success := []string{}
+	args := os.Args[1:]
 
 	for _, filePath := range args {
 		parts := strings.Split(filePath, "/")
@@ -96,13 +86,6 @@ func main() {
 			fmt.Printf("    %s\n", e)
 		}
 	}
-}
-
-func help(stream *os.File) {
-	stream.WriteString(fmt.Sprintf(`Usage: %s <TARGETS>
-TARGETS:
-    list of executable files in lib directory to make symbolic links of
-`, os.Args[0]))
 }
 
 func findLocalLib(pathParts []string) (int, bool) {

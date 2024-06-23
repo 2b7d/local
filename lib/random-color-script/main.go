@@ -16,7 +16,7 @@ func main() {
 		log.Fatal("$HOME is not set")
 	}
 
-	dirpath := path.Join(home, ".local", "share", scriptsDirName)
+	dirpath := path.Join(home, ".local/share", scriptsDirName)
 	dirents, err := os.ReadDir(dirpath)
 	if err != nil {
 		log.Fatal(err)

@@ -11,6 +11,8 @@ import (
 	"syscall"
 )
 
+const dirname = "todo"
+const filename = "list"
 const textEditor = "/bin/nvim"
 
 func main() {
@@ -19,8 +21,8 @@ func main() {
 		log.Fatal("$HOME is not set")
 	}
 
-	dirpath := path.Join(home, ".local", "share", "todo")
-	filepath := path.Join(dirpath, "list")
+	dirpath := path.Join(home, ".local/share", dirname)
+	filepath := path.Join(dirpath, filename)
 
 	if err := os.Mkdir(dirpath, 0700); err != nil {
 		if !errors.Is(err, fs.ErrExist) {
