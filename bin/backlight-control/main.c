@@ -2,21 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/wait.h>
 
 #define MAXVAL 255
 #define STEP 17
 
-extern char **environ;
-static char display_buf[32];
-
-static void get_brightness_level(int value)
+static void print_brightness_level(int value)
 {
-    int len, filled, offset;
+    int len, filled;
 
     len = MAXVAL / STEP;
     filled = value / STEP;
-    offset = sprintf(display_buf, "%2d/%2d ", filled, len);
+
+    printf("%2d/%2d ", filled, len);
 
     for (int i = 0; i < len; i++) {
         char c = '-';
@@ -24,49 +21,26 @@ static void get_brightness_level(int value)
         if (i < filled) {
             c = '+';
         }
-        display_buf[i + offset] = c;
+        printf("%c", c);
     }
-    display_buf[len + offset] = '\0';
+
+    printf("\n");
 }
 
-static int show_notification(int value)
+static void usage(FILE *stream)
 {
-    pid_t pid;
-    int status;
-
-    pid = fork();
-    if (pid < 0) {
-        perror("Failed to create child process");
-        return 1;
-    }
-
-    if (pid == 0) {
-        char *argv[] = {"/bin/dunstify", "Brightness", display_buf, "-r", "1",
-                        "-t", "500", NULL};
-
-        get_brightness_level(value);
-        execve(argv[0], argv, environ);
-        perror("Failed to send notification");
-        return 1;
-    }
-
-    wait(&status);
-    return WEXITSTATUS(status);
-}
-
-static void print_usage(FILE *stream)
-{
-    fprintf(stream, "Usage: backlight-control <COMMAND>\n"
-                    "Changes brightness of a screen\n"
-                    "\n"
-                    "COMMAND:\n"
-                    "   set <VALUE> sets new brightness value\n"
-                    "   inc         increases brightness\n"
-                    "   dec         decreases brightness\n"
-                    "   show        shows brightness level\n"
-                    "\n"
-                    "VALUE:\n"
-                    "   integer (0-255)\n");
+    fprintf(stream,
+            "Usage: backlight-control <COMMAND>\n"
+            "Changes brightness of a screen\n"
+            "\n"
+            "COMMAND:\n"
+            "    set <VALUE> sets brightness level\n"
+            "    inc         increases brightness\n"
+            "    dec         decreases brightness\n"
+            "    show        shows brightness level\n"
+            "\n"
+            "VALUE:\n"
+            "    integer (0-%d)\n", MAXVAL / STEP);
 }
 
 int main(int argc, char **argv)
@@ -78,12 +52,12 @@ int main(int argc, char **argv)
     argc--;
     if (argc < 1) {
         fprintf(stderr, "Not enough arguments\n\n");
-        print_usage(stderr);
+        usage(stderr);
         return 1;
     }
 
     if (strcmp(*argv, "--help") == 0) {
-        print_usage(stdout);
+        usage(stdout);
         return 0;
     }
 
@@ -98,13 +72,16 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    rewind(f);
+
     if (strcmp(*argv, "inc") == 0) {
         value += STEP;
         if (value > MAXVAL) {
             value = MAXVAL;
         }
         fprintf(f, "%d", value);
-        return show_notification(value);
+        print_brightness_level(value);
+        return 0;
     }
 
     if (strcmp(*argv, "dec") == 0) {
@@ -113,12 +90,12 @@ int main(int argc, char **argv)
             value = 0;
         }
         fprintf(f, "%d", value);
-        return show_notification(value);
+        print_brightness_level(value);
+        return 0;
     }
 
     if (strcmp(*argv, "show") == 0) {
-        get_brightness_level(value);
-        printf("%s\n", display_buf);
+        print_brightness_level(value);
         return 0;
     }
 
@@ -127,20 +104,21 @@ int main(int argc, char **argv)
         argc--;
         if (argc < 1) {
             fprintf(stderr, "Not enough arguments\n\n");
-            print_usage(stderr);
+            usage(stderr);
             return 1;
         }
-        value = atoi(*argv);
+        value = atoi(*argv) * STEP;
         if (value > MAXVAL) {
             value = MAXVAL;
         } else if (value < 0) {
             value = 0;
         }
         fprintf(f, "%d", value);
-        return show_notification(value);
+        print_brightness_level(value);
+        return 0;
     }
 
     fprintf(stderr, "Unknown command: %s\n\n", *argv);
-    print_usage(stderr);
+    usage(stderr);
     return 1;
 }

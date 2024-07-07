@@ -14,3 +14,10 @@ if [[ $1 = "prod" ]]; then
 fi
 
 gcc $flags -o $outname $files $incl $libs
+
+cat > $outname-notify << EOF
+#!/bin/bash
+$outname \$@ | xargs -0 -I @ notify-send -t 500 -r 1 Brightness @
+EOF
+
+chmod u+x $outname-notify
