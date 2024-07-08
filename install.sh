@@ -27,7 +27,7 @@ function install_program() {
         ./build.sh prod
         mv $1 $dest
     else
-        echo "$dir/$program_dir unhandled program install"
+        echo "$2/$1 unhandled program install"
     fi
 }
 
