@@ -1,0 +1,8 @@
+#/bin/bash
+
+set -e
+
+scripts_dir=~/.local/share/color-scripts
+random_script=$(/bin/ls $scripts_dir | shuf -n 1)
+
+$scripts_dir/$random_script
