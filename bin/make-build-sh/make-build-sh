@@ -2,7 +2,7 @@
 
 set -e
 
-tee build.sh > /dev/null << 'EOF'
+cat > build.sh << 'EOF'
 #!/bin/bash
 
 set -xe
