@@ -1,14 +1,9 @@
-package main
+#!/bin/bash
 
-import (
-	"errors"
-	"fmt"
-	"io/fs"
-	"log"
-	"os"
-)
+set -e
 
-const src = `#!/bin/bash
+tee build.sh > /dev/null << 'EOF'
+#!/bin/bash
 
 set -xe
 
@@ -42,18 +37,7 @@ if [[ $1 = "prod" ]]; then
     flags=${flags/-g/-O2}
 fi
 
-gcc $flags -o $outname $files $incl $libs`
+gcc $flags -o $outname $files $incl $libs
+EOF
 
-func main() {
-	file, err := os.OpenFile("build.sh", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
-	if err != nil {
-		if errors.Is(err, fs.ErrExist) {
-			fmt.Println("build.sh already exist")
-			os.Exit(0)
-		}
-		log.Fatal(err)
-	}
-
-	file.WriteString(src)
-	file.Close()
-}
+chmod u+x build.sh

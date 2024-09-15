@@ -1,0 +1,14 @@
+#/bin/bash
+
+set -e
+
+list=~/.local/share/todo/list
+
+if [[ $1 = "list" ]]; then
+    echo -en "━━━ Todo List\n\n"
+    cat $list
+    echo -en "\n━━━\n"
+    exit 0
+fi
+
+/bin/nvim $list
