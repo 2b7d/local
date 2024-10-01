@@ -5,7 +5,7 @@ set -e
 cat > build.sh << 'EOF'
 #!/bin/bash
 
-set -xe
+set -e
 
 files=main.c
 outname=main
