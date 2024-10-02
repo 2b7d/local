@@ -1,23 +1,18 @@
 #!/bin/bash
 
-set -xe
+set -e
 
 files=main.c
 outname=backlight-control
 
-flags="-g -Werror=declaration-after-statement -Wall -Wextra -pedantic -std=c99"
-incl=
-libs=
+flags="-Werror=declaration-after-statement \
+       -Wall -Wextra -Werror \
+       -pedantic -std=c99"
 
 if [[ $1 = "prod" ]]; then
-    flags=${flags/-g/-O2}
+    flags+=" -s -O3"
+else
+    flags+=" -ggdb"
 fi
 
-gcc $flags -o $outname $files $incl $libs
-
-cat > $outname-notify << EOF
-#!/bin/bash
-$outname \$@ | xargs -0 -I @ notify-send -t 500 -r 1 Brightness @
-EOF
-
-chmod u+x $outname-notify
+gcc $flags -o $outname $files
