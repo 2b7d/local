@@ -10,34 +10,20 @@ set -e
 files=main.c
 outname=main
 
-flags="-g -Werror=declaration-after-statement -Wall -Wextra -pedantic -std=c99"
-incl=
-libs=
+flags="-Werror=declaration-after-statement \
+       -Wall -Wextra -Werror \
+       -pedantic -std=c99"
 
-#if [[ -z $1 ]]; then
-#    echo "provide build option"
-#    exit 1
-#fi
+preproc_opts=
+linker_opts=
 
-#case $1 in
-#    build_option)
-#        files=
-#        outname=
-#        incl=
-#        libs=
-#        ;;
-#    *)
-#        echo "unknown build option $1"
-#        exit 1
-#        ;;
-#esac
-
-#if [[ $2 = "prod" ]]; then
 if [[ $1 = "prod" ]]; then
-    flags=${flags/-g/-O2}
+    flags+=" -s -O3"
+else
+    flags+=" -ggdb"
 fi
 
-gcc $flags -o $outname $files $incl $libs
+gcc $flags -o $outname $files $preproc_opts $linker_opts
 EOF
 
 chmod u+x build.sh
