@@ -29,6 +29,10 @@ type Input struct {
 }
 
 func main() {
+	fmt.Println("hello, world")
+}
+
+func main2() {
 	args := os.Args[1:]
 	argslen := len(args)
 
