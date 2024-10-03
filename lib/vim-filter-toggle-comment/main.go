@@ -1,249 +1,199 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"os"
 )
 
-type Comment struct {
-	prefix      []byte
-	suffix      []byte
-	isMultiLine bool
+type Mode int
+
+const (
+	COMMENT Mode = iota
+	UNCOMMENT
+)
+
+var stdout *bufio.Writer
+
+func getInputInfo(src, commentPrefix []byte) (lines [][]byte, lowestIndentLevel int, mode Mode) {
+	lines = bytes.Split(src, []byte{'\n'})
+	lines = lines[:len(lines)-1] // art: Split leaves garbage empty []byte at the end
+	lowestIndentLevel = 100
+	mode = COMMENT
+
+	isModeSet := false
+
+	for _, line := range lines {
+		if len(bytes.TrimSpace(line)) == 0 {
+			continue
+		}
+
+		indentLevel := 0
+		for i, char := range line {
+			// art: we are assuming that indentation is either spaces or tabs, not mix of them
+			if char == ' ' || char == '\t' {
+				continue
+			}
+
+			// art: we are setting mode by checking first line
+			if !isModeSet {
+				if bytes.HasPrefix(line[i:], commentPrefix) {
+					mode = UNCOMMENT
+				}
+				isModeSet = true
+			}
+
+			indentLevel = i
+			break
+		}
+
+		if indentLevel < lowestIndentLevel {
+			lowestIndentLevel = indentLevel
+			if lowestIndentLevel == 0 {
+				break
+			}
+		}
+	}
+
+	return lines, lowestIndentLevel, mode
 }
 
-type Line struct {
-	buf     []byte
-	isEmpty bool
+func handleMultiLine(mode Mode, lines [][]byte, prefix, suffix []byte, lowestIndentLevel int) {
+	lastNonEmptyLine := 0
+
+	for i := len(lines) - 1; i >= 0; i-- {
+		if len(bytes.TrimSpace(lines[i])) == 0 {
+			continue
+		}
+
+		lastNonEmptyLine = i
+		break
+	}
+
+	if mode == COMMENT {
+		isPrefixInserted := false
+
+		for i, line := range lines {
+			if len(bytes.TrimSpace(line)) == 0 {
+				stdout.Write(line)
+				stdout.WriteByte('\n')
+				continue
+			}
+
+			if !isPrefixInserted {
+				stdout.Write(line[:lowestIndentLevel])
+				stdout.Write(prefix)
+				stdout.Write(line[lowestIndentLevel:])
+				isPrefixInserted = true
+			} else {
+				stdout.Write(line)
+				if i == lastNonEmptyLine {
+					stdout.Write(suffix)
+				}
+			}
+
+			stdout.WriteByte('\n')
+		}
+	} else {
+		isPrefixRemoved := false
+
+		for i, line := range lines {
+			if len(bytes.TrimSpace(line)) == 0 {
+				stdout.Write(line)
+				stdout.WriteByte('\n')
+				continue
+			}
+
+			if !isPrefixRemoved {
+				left, right, _ := bytes.Cut(line, prefix)
+				stdout.Write(left)
+				stdout.Write(right)
+				isPrefixRemoved = true
+			} else {
+				if i == lastNonEmptyLine {
+					left, right, found := bytes.Cut(line, suffix)
+					if !found {
+						continue
+					}
+					stdout.Write(left)
+					stdout.Write(right)
+				} else {
+					stdout.Write(line)
+				}
+			}
+
+			stdout.WriteByte('\n')
+		}
+	}
+
+	stdout.Flush()
 }
 
-type Input struct {
-	src            []byte
-	len            int
-	lines          []Line
-	lineCount      int
-	indentLevel    int
-	isUncommenting bool
+func handleSingleLine(mode Mode, lines [][]byte, prefix []byte, lowestIndentLevel int) {
+	if mode == COMMENT {
+		for _, line := range lines {
+			if len(bytes.TrimSpace(line)) == 0 {
+				stdout.Write(line)
+				stdout.WriteByte('\n')
+				continue
+			}
+
+			stdout.Write(line[:lowestIndentLevel])
+			stdout.Write(prefix)
+			stdout.Write(line[lowestIndentLevel:])
+			stdout.WriteByte('\n')
+		}
+	} else {
+		for _, line := range lines {
+			if len(bytes.TrimSpace(line)) == 0 {
+				stdout.Write(line)
+				stdout.WriteByte('\n')
+				continue
+			}
+
+			left, right, found := bytes.Cut(line, prefix)
+			if !found {
+				continue
+			}
+
+			stdout.Write(left)
+			stdout.Write(right)
+			stdout.WriteByte('\n')
+		}
+	}
+
+	stdout.Flush()
 }
 
 func main() {
-	fmt.Println("hello, world")
-}
-
-func main2() {
-	args := os.Args[1:]
-	argslen := len(args)
-
-	if argslen < 1 {
-		log.Fatalln("need at least 1 argument")
+	if len(os.Args) < 2 {
+		log.Fatal("comment prefix is required")
 	}
 
-	comment := Comment{
-		prefix:      []byte(args[0]),
-		isMultiLine: false,
-	}
+	var (
+		prefix, suffix []byte
+		hasSuffix      bool
+	)
 
-	if argslen > 1 {
-		comment.isMultiLine = true
-		comment.suffix = []byte(args[1])
+	prefix = []byte(os.Args[1])
+	if len(os.Args) > 2 {
+		suffix = []byte(os.Args[2])
+		hasSuffix = true
 	}
 
 	src, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 
-	var (
-		input  Input
-		output []byte
-	)
+	stdout = bufio.NewWriterSize(os.Stdout, len(src)*2)
+	lines, lowestIndentLevel, mode := getInputInfo(src, prefix)
 
-	parseInput(&input, src, &comment)
-
-	if input.isUncommenting {
-		output = make([]byte, 0, input.len)
-
-		if comment.isMultiLine {
-			output = uncommentMultiLine(output, &input, &comment)
-		} else {
-			output = uncommentSingleLine(output, &input, &comment)
-		}
+	if hasSuffix {
+		handleMultiLine(mode, lines, prefix, suffix, lowestIndentLevel)
 	} else {
-		output = make([]byte, 0, input.len*3)
-
-		if comment.isMultiLine {
-			output = commentOutMultiLine(output, &input, &comment)
-		} else {
-			output = commentOutSingleLine(output, &input, &comment)
-		}
+		handleSingleLine(mode, lines, prefix, lowestIndentLevel)
 	}
-
-	fmt.Print(string(output))
-}
-
-func parseInput(input *Input, src []byte, comment *Comment) {
-	input.src = src
-	input.len = len(src)
-	input.indentLevel = -1
-	input.isUncommenting = true
-
-	pad := 0
-	line := Line{make([]byte, 0, 80), false}
-	isLineStart := true
-	isModeSet := false
-
-	for i := 0; i < input.len; i++ {
-		if isLineStart {
-			for input.src[i] == ' ' || input.src[i] == '\t' {
-				line.buf = append(line.buf, input.src[i])
-				pad++
-				i++
-			}
-
-			if input.src[i] == '\n' {
-				line.isEmpty = true
-				pad--
-			}
-
-			if !isModeSet && !line.isEmpty {
-				if comment.isMultiLine {
-					input.isUncommenting = bytes.HasPrefix(input.src[i:], comment.prefix)
-					isModeSet = true
-				} else {
-					// if at least one line is not a comment then we are commenting out
-					if !bytes.HasPrefix(input.src[i:], comment.prefix) {
-						input.isUncommenting = false
-						isModeSet = true
-					}
-				}
-			}
-
-			isLineStart = false
-		}
-
-		line.buf = append(line.buf, input.src[i])
-
-		if input.src[i] == '\n' {
-			if input.indentLevel == -1 {
-				input.indentLevel = pad
-			} else {
-				if !comment.isMultiLine {
-					if pad < input.indentLevel && !line.isEmpty {
-						input.indentLevel = pad
-					}
-				}
-			}
-
-			input.lines = append(input.lines, line)
-
-			pad = 0
-			line = Line{make([]byte, 0, 80), false}
-			isLineStart = true
-		}
-	}
-
-	input.lineCount = len(input.lines)
-}
-
-func commentOutMultiLine(output []byte, input *Input, comment *Comment) []byte {
-	isPrefixInserted := false
-	lastLine := findLastNonEmptyLine(input.lines)
-
-	for lineNum, line := range input.lines {
-		if line.isEmpty {
-			output = append(output, line.buf...)
-			continue
-		}
-
-		for i, ch := range line.buf {
-			if !isPrefixInserted && i == input.indentLevel {
-				output = append(output, comment.prefix...)
-				isPrefixInserted = true
-			}
-
-			if lineNum == lastLine && ch == '\n' {
-				output = append(output, comment.suffix...)
-			}
-
-			output = append(output, ch)
-		}
-	}
-
-	return output
-}
-
-func uncommentMultiLine(output []byte, input *Input, comment *Comment) []byte {
-	isPrefixDeleted := false
-	lastLine := findLastNonEmptyLine(input.lines)
-
-	for lineNum, line := range input.lines {
-		if line.isEmpty {
-			output = append(output, line.buf...)
-			continue
-		}
-
-		for i := 0; i < len(line.buf); i++ {
-			if !isPrefixDeleted && i == input.indentLevel {
-				i += len(comment.prefix)
-				isPrefixDeleted = true
-			}
-
-			if lineNum == lastLine && line.buf[i] == '\n' {
-				end := len(output) - len(comment.suffix)
-				output = output[:end]
-			}
-
-			output = append(output, line.buf[i])
-		}
-	}
-
-	return output
-}
-
-func findLastNonEmptyLine(lines []Line) int {
-	for i := len(lines) - 1; i >= 0; i-- {
-		if !lines[i].isEmpty {
-			return i
-		}
-	}
-
-	return 0
-}
-
-func commentOutSingleLine(output []byte, input *Input, comment *Comment) []byte {
-	for _, line := range input.lines {
-		if line.isEmpty {
-			output = append(output, line.buf...)
-			continue
-		}
-
-		for i, ch := range line.buf {
-			if i == input.indentLevel {
-				output = append(output, comment.prefix...)
-			}
-			output = append(output, ch)
-		}
-	}
-
-	return output
-}
-
-func uncommentSingleLine(output []byte, input *Input, comment *Comment) []byte {
-	for _, line := range input.lines {
-		if line.isEmpty {
-			output = append(output, line.buf...)
-			continue
-		}
-
-		for i := 0; i < len(line.buf); i++ {
-			if i == input.indentLevel {
-				i += len(comment.prefix)
-			}
-			output = append(output, line.buf[i])
-		}
-	}
-
-	return output
 }
