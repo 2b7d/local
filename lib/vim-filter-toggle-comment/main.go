@@ -114,11 +114,10 @@ func handleMultiLine(mode Mode, lines [][]byte, prefix, suffix []byte, lowestInd
 			} else {
 				if i == lastNonEmptyLine {
 					left, right, found := bytes.Cut(line, suffix)
-					if !found {
-						continue
-					}
 					stdout.Write(left)
-					stdout.Write(right)
+					if found {
+						stdout.Write(right)
+					}
 				} else {
 					stdout.Write(line)
 				}
@@ -154,12 +153,10 @@ func handleSingleLine(mode Mode, lines [][]byte, prefix []byte, lowestIndentLeve
 			}
 
 			left, right, found := bytes.Cut(line, prefix)
-			if !found {
-				continue
-			}
-
 			stdout.Write(left)
-			stdout.Write(right)
+			if found {
+				stdout.Write(right)
+			}
 			stdout.WriteByte('\n')
 		}
 	}
