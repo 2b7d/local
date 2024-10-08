@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+dir=~/.local/share/terminal-art
+random=$(/bin/ls $dir | shuf -n 1)
+
+cat $dir/$random
