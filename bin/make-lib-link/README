@@ -1,4 +1,0 @@
-Make Lib Link
-
-Makes relative symbolic links of lib directory programs and
-places them into bin directory.
