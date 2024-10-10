@@ -89,9 +89,10 @@ func handleMultiLine(mode Mode, lines [][]byte, prefix, suffix []byte, lowestInd
 				isPrefixInserted = true
 			} else {
 				stdout.Write(line)
-				if i == lastNonEmptyLine {
-					stdout.Write(suffix)
-				}
+			}
+
+			if i == lastNonEmptyLine {
+				stdout.Write(suffix)
 			}
 
 			stdout.WriteByte('\n')
@@ -109,20 +110,17 @@ func handleMultiLine(mode Mode, lines [][]byte, prefix, suffix []byte, lowestInd
 			if !isPrefixRemoved {
 				left, right, _ := bytes.Cut(line, prefix)
 				stdout.Write(left)
-				stdout.Write(right)
+				line = right
 				isPrefixRemoved = true
-			} else {
-				if i == lastNonEmptyLine {
-					left, right, found := bytes.Cut(line, suffix)
-					stdout.Write(left)
-					if found {
-						stdout.Write(right)
-					}
-				} else {
-					stdout.Write(line)
-				}
 			}
 
+			if i == lastNonEmptyLine {
+				left, right, _ := bytes.Cut(line, suffix)
+				stdout.Write(left)
+				line = right
+			}
+
+			stdout.Write(line)
 			stdout.WriteByte('\n')
 		}
 	}
