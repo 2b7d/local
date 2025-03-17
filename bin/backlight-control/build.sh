@@ -2,9 +2,6 @@
 
 set -e
 
-files=main.c
-outname=backlight-control
-
 flags="-Werror=declaration-after-statement \
        -Wall -Wextra -Werror \
        -pedantic -std=c99"
@@ -15,4 +12,4 @@ else
     flags+=" -ggdb"
 fi
 
-gcc $flags -o $outname $files
+gcc $flags -o backlight-control main.c
